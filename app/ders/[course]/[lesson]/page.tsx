@@ -4,9 +4,15 @@ import Link from "next/link";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 
-export default async function LessonPage({ params }: { params: { course: string; lesson: string } }) {
+export default async function LessonPage({
+  params,
+}: {
+  params: Promise<{ course: string; lesson: string }>;
+}) {
+  const { course, lesson: lessonSlug } = await params;
+
   const lesson = await prisma.lesson.findFirst({
-    where: { slug: params.lesson, course: { slug: params.course } },
+    where: { slug: lessonSlug, course: { slug: course } },
     include: {
       contents: {
         orderBy: { order: "asc" },
@@ -23,7 +29,9 @@ export default async function LessonPage({ params }: { params: { course: string;
     <div className="space-y-8">
       <nav className="text-sm text-gray-600 dark:text-slate-400">
         <Link href="/" className="hover:underline">Anasayfa</Link> <span>/</span>{" "}
-        <Link href={`/ders/${params.course}`} className="hover:underline">{lesson.courseId ? params.course : "Ders"}</Link>{" "}
+        <Link href={`/ders/${course}`} className="hover:underline">
+          {lesson.courseId ? course : "Ders"}
+        </Link>{" "}
         <span>/</span> {lesson.title}
       </nav>
 
@@ -35,19 +43,19 @@ export default async function LessonPage({ params }: { params: { course: string;
         <section key={block.id} className="card p-6 space-y-4">
           <h2 className="text-lg font-semibold">{block.title || "İçerik"}</h2>
           <article className="prose">
-  <ReactMarkdown
-    remarkPlugins={[remarkGfm]}
-    rehypePlugins={[rehypeRaw]}  // ← HTML etiketlerini işler
-    components={{
-      img: (props) => <img {...props} className="max-w-full h-auto rounded-xl" />,
-      table: (props) => <table {...props} className="table-auto w-full border-collapse" />,
-      th: (props) => <th {...props} className="border px-3 py-2" />,
-      td: (props) => <td {...props} className="border px-3 py-2" />,
-    }}
-  >
-    {block.markdown ?? ""}
-  </ReactMarkdown>
-</article>
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              rehypePlugins={[rehypeRaw]}
+              components={{
+                img: (props) => <img {...props} className="max-w-full h-auto rounded-xl" />,
+                table: (props) => <table {...props} className="table-auto w-full border-collapse" />,
+                th: (props) => <th {...props} className="border px-3 py-2" />,
+                td: (props) => <td {...props} className="border px-3 py-2" />,
+              }}
+            >
+              {block.markdown ?? ""}
+            </ReactMarkdown>
+          </article>
         </section>
       ))}
 
@@ -60,7 +68,7 @@ export default async function LessonPage({ params }: { params: { course: string;
             {quizBlocks.map((b) => (
               <li key={b.id}>
                 <Link
-                  href={`/ders/${params.course}/${params.lesson}/quiz/${b.quiz!.id}`}
+                  href={`/ders/${course}/${lessonSlug}/quiz/${b.quiz!.id}`}
                   className="block rounded-xl border border-black/10 px-4 py-3 hover:bg-black/5 dark:hover:bg-white/5 transition"
                 >
                   {b.title || b.quiz!.title}
@@ -73,4 +81,3 @@ export default async function LessonPage({ params }: { params: { course: string;
     </div>
   );
 }
-
