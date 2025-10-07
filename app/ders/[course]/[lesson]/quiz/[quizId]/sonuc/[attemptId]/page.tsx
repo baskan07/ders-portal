@@ -2,17 +2,21 @@
 import { prisma } from "@/lib/db";
 import Link from "next/link";
 
-type Params = {
-  params: { course: string; lesson: string; quizId: string; attemptId: string };
-};
+export default async function QuizResultPage({
+  params,
+}: {
+  params: Promise<{ course: string; lesson: string; quizId: string; attemptId: string }>;
+}) {
+  const { course, lesson, quizId, attemptId } = await params;
 
-export default async function QuizResultPage({ params }: Params) {
   const attempt = await prisma.attempt.findUnique({
-    where: { id: params.attemptId },
-    include: { quiz: { include: { questions: { include: { choices: true } } } } }
+    where: { id: attemptId },
+    include: {
+      quiz: { include: { questions: { include: { choices: true } } } },
+    },
   });
 
-  if (!attempt || attempt.quizId !== params.quizId) {
+  if (!attempt || attempt.quizId !== quizId) {
     return <main className="p-6">Sonuç bulunamadı.</main>;
   }
 
@@ -32,7 +36,8 @@ export default async function QuizResultPage({ params }: Params) {
         {attempt.quiz.questions.map((q, i) => {
           const userChoice = answers[q.id];
           const isCorrect = userChoice && userChoice === q.answerId;
-          const choiceText = (id?: string) => q.choices.find(c => c.id === id)?.text ?? "-";
+          const choiceText = (id?: string) =>
+            q.choices.find((c) => c.id === id)?.text ?? "-";
 
           return (
             <div
@@ -52,7 +57,8 @@ export default async function QuizResultPage({ params }: Params) {
               </p>
               {!isCorrect && (
                 <p>
-                  Doğru cevap: <b className="text-green-600">{choiceText(q.answerId)}</b>
+                  Doğru cevap:{" "}
+                  <b className="text-green-600">{choiceText(q.answerId)}</b>
                 </p>
               )}
             </div>
@@ -62,13 +68,13 @@ export default async function QuizResultPage({ params }: Params) {
 
       <div className="flex gap-4 pt-4">
         <Link
-          href={`/ders/${params.course}/${params.lesson}`}
+          href={`/ders/${course}/${lesson}`}
           className="underline text-blue-600 dark:text-blue-400"
         >
           Derse dön
         </Link>
         <Link
-          href={`/ders/${params.course}/${params.lesson}/quiz/${params.quizId}`}
+          href={`/ders/${course}/${lesson}/quiz/${quizId}`}
           className="underline text-blue-600 dark:text-blue-400"
         >
           Quizi tekrar çöz
