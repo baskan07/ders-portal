@@ -1,9 +1,9 @@
+// next.config.ts
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  experimental: {
-    serverComponentsExternalPackages: ["pdf-parse", "mammoth"],
-  },
+  // eski: experimental.serverComponentsExternalPackages
+  serverExternalPackages: ["pdf-parse", "mammoth"],
 };
 
 export default nextConfig;
