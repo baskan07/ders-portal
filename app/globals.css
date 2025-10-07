@@ -1,0 +1,19 @@
+/* app/globals.css */
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+/* (İstersen kendi yardımcı sınıfların) */
+:root {
+  --bg: 255 255 255;
+  --fg: 17 24 39;
+  --card: 249 250 251;
+}
+.dark {
+  --bg: 17 24 39;
+  --fg: 226 232 240;
+  --card: 30 41 59;
+}
+
+body { background: rgb(var(--bg)); color: rgb(var(--fg)); }
+.card { @apply rounded-2xl shadow border border-black/5 bg-[rgb(var(--card))]; }
+.prose { @apply prose-slate dark:prose-invert max-w-none; }
