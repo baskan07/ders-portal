@@ -36,15 +36,15 @@ export default async function QuizResultPage({
         {attempt.quiz.questions.map((q, i) => {
           const userChoice = answers[q.id];
           const isCorrect = userChoice && userChoice === q.answerId;
-          const choiceText = (id?: string) =>
+
+          // <<< Burayı genişlettim
+          const choiceText = (id: string | null | undefined) =>
             q.choices.find((c) => c.id === id)?.text ?? "-";
 
           return (
             <div
               key={q.id}
-              className={`card p-4 border-l-4 ${
-                isCorrect ? "border-green-500" : "border-red-500"
-              }`}
+              className={`card p-4 border-l-4 ${isCorrect ? "border-green-500" : "border-red-500"}`}
             >
               <p className="font-semibold mb-2">
                 Soru {i + 1}: {q.text}
@@ -58,7 +58,8 @@ export default async function QuizResultPage({
               {!isCorrect && (
                 <p>
                   Doğru cevap:{" "}
-                  <b className="text-green-600">{choiceText(q.answerId)}</b>
+                  {/* <<< Burada da null'u undefined'a çevirerek güvenceye aldım */}
+                  <b className="text-green-600">{choiceText(q.answerId ?? undefined)}</b>
                 </p>
               )}
             </div>
