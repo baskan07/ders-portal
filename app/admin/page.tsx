@@ -316,10 +316,12 @@ export default async function AdminPage() {
           <div className="pt-2">
             <h3 className="font-medium mb-2">İçerik Ekle</h3>
             <ContentForm
-              upsertContent={upsertContent}
-              courses={courses}
-              lessons={allLessons}
-            />
+    upsertContent={upsertContent}
+    courseId={c.id}
+    lessons={c.lessons.map(l => ({
+      id: l.id, title: l.title, slug: l.slug, courseId: l.courseId
+    }))}
+  />
           </div>
 
           {/* Mevcut içerikler */}
