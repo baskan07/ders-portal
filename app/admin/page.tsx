@@ -2,6 +2,7 @@
 import { prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import ContentForm from "./_components/ContentForm";
+import ConfirmDialog from "./_components/ConfirmDialog";
 
 export default async function AdminPage() {
   // Kurs + ders + içerikler
@@ -15,10 +16,6 @@ export default async function AdminPage() {
         },
       },
     },
-  });
-
-  const allLessons = await prisma.lesson.findMany({
-    orderBy: { title: "asc" },
   });
 
   // ========= SERVER ACTIONS =========
@@ -220,8 +217,8 @@ export default async function AdminPage() {
       where: { question: { quiz: { contentBlockId: id } } },
     });
     await prisma.question.deleteMany({
-      where: { quiz: { contentBlockId: id } } },
-    );
+      where: { quiz: { contentBlockId: id } },
+    });
     await prisma.quiz.deleteMany({ where: { contentBlockId: id } });
     await prisma.contentBlock.delete({ where: { id } });
 
@@ -231,6 +228,9 @@ export default async function AdminPage() {
   // ========= UI =========
   return (
     <main className="max-w-5xl mx-auto p-6 space-y-8">
+      {/* Global şık onay modalı */}
+      <ConfirmDialog />
+
       <h1 className="text-2xl font-bold">Admin Panel</h1>
 
       {/* Kurs oluştur */}
@@ -268,10 +268,13 @@ export default async function AdminPage() {
         <section key={c.id} className="card p-6 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="font-semibold">
-              {c.title}{" "}
-              <small className="opacity-60">(/{c.slug})</small>
+              {c.title} <small className="opacity-60">(/{c.slug})</small>
             </h2>
-            <form action={deleteCourse}>
+            <form
+              action={deleteCourse}
+              data-confirm-title="Kursu sil"
+              data-confirm="Bu kurs ve içindeki TÜM ders/quiz/içerikler silinecek. Bu işlem geri alınamaz. Emin misin?"
+            >
               <input type="hidden" name="id" value={c.id} />
               <button type="submit" className="text-red-400 hover:underline">
                 Kursu Sil
@@ -312,16 +315,19 @@ export default async function AdminPage() {
             </form>
           </details>
 
-          {/* İçerik ekle (yeni form) */}
+          {/* İçerik ekle (sadece bu kursun dersleri, collapse) */}
           <div className="pt-2">
             <h3 className="font-medium mb-2">İçerik Ekle</h3>
             <ContentForm
-    upsertContent={upsertContent}
-    courseId={c.id}
-    lessons={c.lessons.map(l => ({
-      id: l.id, title: l.title, slug: l.slug, courseId: l.courseId
-    }))}
-  />
+              upsertContent={upsertContent}
+              courseId={c.id}
+              lessons={c.lessons.map((l) => ({
+                id: l.id,
+                title: l.title,
+                slug: l.slug,
+                courseId: l.courseId,
+              }))}
+            />
           </div>
 
           {/* Mevcut içerikler */}
@@ -333,7 +339,11 @@ export default async function AdminPage() {
                     {l.title}{" "}
                     <small className="opacity-60">(sıra: {l.order})</small>
                   </div>
-                  <form action={deleteLesson}>
+                  <form
+                    action={deleteLesson}
+                    data-confirm-title="Dersi sil"
+                    data-confirm="Bu ders ve içindeki tüm içerik/quiz ve sonuçlar silinecek. Geri alınamaz. Emin misin?"
+                  >
                     <input type="hidden" name="id" value={l.id} />
                     <button type="submit" className="text-red-400 hover:underline">
                       Dersi Sil
@@ -350,7 +360,11 @@ export default async function AdminPage() {
                           ? b.title || "İçerik"
                           : `Quiz → ${b.quiz?.title || b.title || "Adsız Quiz"}`}
                       </span>
-                      <form action={deleteContent}>
+                      <form
+                        action={deleteContent}
+                        data-confirm-title="İçeriği sil"
+                        data-confirm="Bu içerik (ve bağlıysa quiz/sorular/sonuçlar) silinecek. Geri alınamaz. Emin misin?"
+                      >
                         <input type="hidden" name="id" value={b.id} />
                         <button type="submit" className="text-red-400 hover:underline">
                           Sil
