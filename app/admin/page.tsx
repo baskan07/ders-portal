@@ -127,18 +127,58 @@ export default async function AdminPage() {
       return;
     }
 
-    // markdown (docx/pdf/md/txt)
+    // ---- MARKDOWN (docx/pdf/md/txt destekli) ----
     const blockTitle = String(formData.get("blockTitle") || "İçerik");
     let markdown = String(formData.get("markdown") || "");
+
     const file = formData.get("file") as File | null;
     if (file && file.size > 0) {
       const buf = Buffer.from(await file.arrayBuffer());
       const lower = file.name.toLowerCase();
-      if (lower.endsWith(".md") || lower.endsWith(".txt")) {
+
+      if (lower.endsWith(".docx")) {
+        const mammoth = (await import("mammoth")).default;
+        const fs = await import("fs/promises");
+        const path = await import("path");
+
+        // Görseller için uploads klasörü garanti
+        const uploadsDir = path.join(process.cwd(), "public", "uploads");
+        await fs.mkdir(uploadsDir, { recursive: true });
+
+        const out = await mammoth.convertToHtml(
+          { buffer: buf },
+          {
+            convertImage: mammoth.images.imgElement(async (image) => {
+              const ext = image.contentType?.split("/")[1] || "png";
+              const filename = `docx-${Date.now()}-${Math.random()
+                .toString(36)
+                .slice(2)}.${ext}`;
+              const filePath = path.join(uploadsDir, filename);
+              const bytes = await image.read();
+              await fs.writeFile(filePath, bytes);
+              return { src: `/uploads/${filename}` };
+            }),
+          }
+        );
+
+        markdown = out.value; // HTML (ders sayfasında rehype-raw ile render ediliyor)
+      } else if (lower.endsWith(".pdf")) {
+        const { createRequire } = await import("node:module");
+        const require = createRequire(process.cwd());
+        const pdfParse = require("pdf-parse") as (b: Buffer) => Promise<{ text: string }>;
+        const data = await pdfParse(buf);
+        markdown = data.text
+          .split(/\n{2,}|\r\n{2,}/g)
+          .map((s) => s.trim())
+          .filter(Boolean)
+          .join("\n\n");
+      } else if (lower.endsWith(".md") || lower.endsWith(".txt")) {
         markdown = buf.toString("utf8");
       }
     }
+
     if (!markdown.trim()) markdown = "_(içerik eklenmedi)_";
+
     await prisma.contentBlock.create({
       data: { lessonId, type: "markdown", order, title: blockTitle, markdown },
     });
@@ -181,7 +221,9 @@ export default async function AdminPage() {
       {courses.map((c) => (
         <section key={c.id} className="card p-6 space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="font-semibold">{c.title} <small>/{c.slug}</small></h2>
+            <h2 className="font-semibold">
+              {c.title} <small>/{c.slug}</small>
+            </h2>
             <form
               action={deleteCourse}
               data-confirm-title="Kursu sil"
@@ -210,7 +252,12 @@ export default async function AdminPage() {
           <ContentForm
             upsertContent={upsertContent}
             courseId={c.id}
-            lessons={c.lessons.map((l) => ({ id: l.id, title: l.title, slug: l.slug, courseId: l.courseId }))}
+            lessons={c.lessons.map((l) => ({
+              id: l.id,
+              title: l.title,
+              slug: l.slug,
+              courseId: l.courseId,
+            }))}
           />
 
           {/* Mevcut içerikler */}
@@ -218,7 +265,9 @@ export default async function AdminPage() {
             {c.lessons.map((l) => (
               <li key={l.id} className="rounded-xl border border-white/10 p-3">
                 <div className="flex items-center justify-between">
-                  <div>{l.title} <small>(sıra: {l.order})</small></div>
+                  <div>
+                    {l.title} <small>(sıra: {l.order})</small>
+                  </div>
                   <form
                     action={deleteLesson}
                     data-confirm-title="Dersi sil"
@@ -232,7 +281,11 @@ export default async function AdminPage() {
                 <ul className="mt-3 grid gap-2">
                   {l.contents.map((b) => (
                     <li key={b.id} className="flex items-center justify-between">
-                      <span>{b.type === "markdown" ? b.title || "İçerik" : `Quiz → ${b.quiz?.title || "Adsız Quiz"}`}</span>
+                      <span>
+                        {b.type === "markdown"
+                          ? b.title || "İçerik"
+                          : `Quiz → ${b.quiz?.title || "Adsız Quiz"}`}
+                      </span>
                       <form
                         action={deleteContent}
                         data-confirm-title="İçeriği sil"
