@@ -17,3 +17,8 @@
 body { background: rgb(var(--bg)); color: rgb(var(--fg)); }
 .card { @apply rounded-2xl shadow border border-black/5 bg-[rgb(var(--card))]; }
 .prose { @apply prose-slate dark:prose-invert max-w-none; }
+
+/* form elemanlarını biraz yumuşatmak için */
+.input, .select, .textarea {
+  @apply w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 outline-none;
+}
